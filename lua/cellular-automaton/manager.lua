@@ -58,7 +58,7 @@ local function _execute_animation(animation_config)
   if animation_config.init ~= nil then
     animation_config.init(grid)
   end
-  local win_id, buffers = ui.open_window(host_win_id)
+  local win_id, buffers = ui.open_window(host_win_id, host_bufnr)
   process_frame(grid, animation_config, win_id)
   setup_cleaning(win_id, buffers)
 end

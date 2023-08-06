@@ -15,14 +15,34 @@ local get_buffer = (function()
   end
 end)()
 
-M.open_window = function(host_window)
+M.open_window = function(host_window, host_buf)
   buffers = {
     vim.api.nvim_create_buf(false, true),
     vim.api.nvim_create_buf(false, true),
   }
   local buffnr = get_buffer()
+  local lines = vim.api.nvim_buf_get_lines(
+    host_buf,
+    0,
+    1000,
+    false
+  )
+  vim.api.nvim_buf_set_lines(
+    buffers[1],
+    0,
+    1000,
+    false,
+    lines
+  )
+  vim.api.nvim_buf_set_lines(
+    buffers[2],
+    0,
+    1000,
+    false,
+    lines
+  )
   window_id = vim.api.nvim_open_win(buffnr, true, {
-    relative = "editor",
+    relative = "win",
     width = vim.api.nvim_win_get_width(host_window),
     height = vim.api.nvim_win_get_height(host_window),
     border = "none",
@@ -31,6 +51,7 @@ M.open_window = function(host_window)
   })
   vim.api.nvim_win_set_option(window_id, "winhl", "Normal:CellularAutomatonNormal")
   vim.api.nvim_win_set_option(window_id, "list", false)
+  vim.fn.winrestview(_G.my_saved_view)
   return window_id, buffers
 end
 
@@ -49,16 +70,30 @@ M.render_frame = function(grid)
     end
     table.insert(lines, table.concat(chars, ""))
   end
-  vim.api.nvim_buf_set_lines(buffnr, 0, vim.api.nvim_win_get_height(window_id), false, lines)
+  vim.api.nvim_buf_set_lines(
+    buffnr,
+    _G.my_saved_view.topline - 1,
+    _G.my_saved_view.topline - 1 + vim.api.nvim_win_get_height(window_id),
+    false,
+    lines
+  )
   -- update highlights
   vim.api.nvim_buf_clear_namespace(buffnr, namespace, 0, -1)
   for i, row in ipairs(grid) do
     for j, cell in ipairs(row) do
-      vim.api.nvim_buf_add_highlight(buffnr, namespace, cell.hl_group or "", i - 1, j - 1, j)
+      vim.api.nvim_buf_add_highlight(
+        buffnr,
+        namespace,
+        cell.hl_group or "",
+        _G.my_saved_view.topline - 1 + i - 1,
+        j - 1,
+        j
+      )
     end
   end
   -- swap buffers
   vim.api.nvim_win_set_buf(window_id, buffnr)
+  vim.fn.winrestview(_G.my_saved_view)
 end
 
 M.clean = function()
