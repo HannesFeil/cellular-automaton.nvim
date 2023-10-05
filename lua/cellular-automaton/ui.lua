@@ -2,6 +2,7 @@ local M = {}
 
 local window_id = nil
 local buffers = nil
+local signs = nil
 local namespace = vim.api.nvim_create_namespace("cellular-automaton")
 
 -- Each frame is rendered in different buffer to avoid flickering
@@ -21,26 +22,10 @@ M.open_window = function(host_window, host_buf)
     vim.api.nvim_create_buf(false, true),
   }
   local buffnr = get_buffer()
-  local lines = vim.api.nvim_buf_get_lines(
-    host_buf,
-    0,
-    1000,
-    false
-  )
-  vim.api.nvim_buf_set_lines(
-    buffers[1],
-    0,
-    1000,
-    false,
-    lines
-  )
-  vim.api.nvim_buf_set_lines(
-    buffers[2],
-    0,
-    1000,
-    false,
-    lines
-  )
+  local lines = vim.api.nvim_buf_get_lines(host_buf, 0, 1000, false)
+  vim.api.nvim_buf_set_lines(buffers[1], 0, 1000, false, lines)
+  vim.api.nvim_buf_set_lines(buffers[2], 0, 1000, false, lines)
+  signs = vim.fn.sign_getplaced(host_buf, { group = "*" })[1].signs
   window_id = vim.api.nvim_open_win(buffnr, true, {
     relative = "win",
     width = vim.api.nvim_win_get_width(host_window),
@@ -90,6 +75,11 @@ M.render_frame = function(grid)
         j
       )
     end
+  end
+
+  for _, sign in ipairs(signs) do
+    vim.fn.sign_place(sign.id, sign.group, sign.name, buffers[1], { lnum = sign.lnum, priority = sign.priority })
+    vim.fn.sign_place(sign.id, sign.group, sign.name, buffers[2], { lnum = sign.lnum, priority = sign.priority })
   end
   -- swap buffers
   vim.api.nvim_win_set_buf(window_id, buffnr)
